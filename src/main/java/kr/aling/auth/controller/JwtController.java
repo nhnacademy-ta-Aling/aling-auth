@@ -1,5 +1,6 @@
 package kr.aling.auth.controller;
 
+import javax.validation.Valid;
 import kr.aling.auth.dto.request.IssueTokenRequestDto;
 import kr.aling.auth.service.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class JwtController {
 
+    public static final String ACCESS_TOKEN_HEADER_NAME = "ACCESS_TOKEN";
+    public static final String REFRESH_TOKEN_HEADER_NAME = "REFRESH_TOKEN";
+
     private final JwtService jwtService;
 
     /**
@@ -32,10 +36,10 @@ public class JwtController {
      * @since 1.0
      */
     @GetMapping("/issue")
-    public ResponseEntity<Void> issueToken(@RequestBody IssueTokenRequestDto requestDto) {
+    public ResponseEntity<Void> issueToken(@RequestBody @Valid IssueTokenRequestDto requestDto) {
         HttpHeaders headers = new HttpHeaders();
-        headers.add("ACCESS_TOKEN", jwtService.createAccessToken(requestDto));
-        headers.add("REFRESH_TOKEN", jwtService.createRefreshToken(requestDto));
+        headers.add(ACCESS_TOKEN_HEADER_NAME, jwtService.createAccessToken(requestDto));
+        headers.add(REFRESH_TOKEN_HEADER_NAME, jwtService.createRefreshToken(requestDto));
 
         return ResponseEntity.ok().headers(headers).build();
     }

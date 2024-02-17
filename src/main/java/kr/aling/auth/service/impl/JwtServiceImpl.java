@@ -20,7 +20,11 @@ public class JwtServiceImpl implements JwtService {
     private static final long ACCESS_TOKEN_EXPIRE_TIME = 30 * 60 * 1000L;
     private static final long REFRESH_TOKEN_EXPIRE_TIME = 14 * 24 * 60 * 60 * 1000L;
 
+    private static final String ACCESS_TOKEN_REDIS_KEY = "aling_access";
+    private static final String REFRESH_TOKEN_REDIS_KEY = "aling_refresh";
+
     private final JwtProvider jwtProvider;
+
     private final RedisTemplate<String, Object> redisTemplate;
 
     /**
@@ -30,7 +34,7 @@ public class JwtServiceImpl implements JwtService {
     public String createAccessToken(IssueTokenRequestDto requestDto) {
         String accessToken = jwtProvider.createToken(requestDto.getUserNo(), requestDto.getRoles(), ACCESS_TOKEN_EXPIRE_TIME);
 
-        redisTemplate.opsForSet().add("access", accessToken);
+        redisTemplate.opsForSet().add(ACCESS_TOKEN_REDIS_KEY, accessToken);
 
         return accessToken;
     }
@@ -42,7 +46,7 @@ public class JwtServiceImpl implements JwtService {
     public String createRefreshToken(IssueTokenRequestDto requestDto) {
         String refreshToken = jwtProvider.createToken(requestDto.getUserNo(), requestDto.getRoles(), REFRESH_TOKEN_EXPIRE_TIME);
 
-        redisTemplate.opsForSet().add("refresh", refreshToken);
+        redisTemplate.opsForSet().add(REFRESH_TOKEN_REDIS_KEY, refreshToken);
 
         return refreshToken;
     }

@@ -23,6 +23,7 @@ public class JwtProvider {
     private final Key secretKey;
 
     /**
+     * JwtProvider 생성자.
      * secret key 값을 base64 decode해 Key를 생성합니다.
      *
      * @param secretKey 디코딩할 secretKey 문자열
@@ -53,7 +54,7 @@ public class JwtProvider {
 
         return Jwts.builder()
                 .setClaims(claims)
-                .signWith(secretKey, SignatureAlgorithm.HS256)
+                .signWith(secretKey, SignatureAlgorithm.HS512)
                 .compact();
     }
 }

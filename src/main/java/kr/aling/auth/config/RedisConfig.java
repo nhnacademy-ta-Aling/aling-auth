@@ -12,8 +12,8 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 /**
  * Redis 설정 class.
  *
- * @author : 이수정
- * @since : 1.0
+ * @author 이수정
+ * @since 1.0
  */
 @RequiredArgsConstructor
 @Configuration
@@ -25,8 +25,8 @@ public class RedisConfig {
      * RedisConnectionFactory를 LettuceConnectionFactory로 설정.
      *
      * @return LettuceConnectionFactory Bean
-     * @author : 이수정
-     * @since : 1.0
+     * @author 이수정
+     * @since 1.0
      */
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
@@ -37,8 +37,8 @@ public class RedisConfig {
      * Redis 상호작용 시 사용될 RedisTemplate 설정.
      *
      * @return RedisTemplate Bean
-     * @author : 이수정
-     * @since : 1.0
+     * @author 이수정
+     * @since 1.0
      */
     @Bean
     public RedisTemplate<String, Object> redisTemplate() {

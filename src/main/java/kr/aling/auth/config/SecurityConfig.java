@@ -9,8 +9,8 @@ import org.springframework.security.web.SecurityFilterChain;
 /**
  * Spring Security 설정 class.
  *
- * @author : 이수정
- * @since : 1.0
+ * @author 이수정
+ * @since 1.0
  */
 @EnableWebSecurity
 @Configuration
@@ -22,8 +22,8 @@ public class SecurityConfig {
      * @param http http 요청에 대한 웹 기반 보안 구성 객체
      * @return 설정한 SecurityFilterChain Bean
      * @throws Exception HttpSecurity 발생 예외
-     * @author : 이수정
-     * @since : 1.0
+     * @author 이수정
+     * @since 1.0
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {

@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
-import kr.aling.auth.dto.request.IssueTokenRequestDto;
+import kr.aling.auth.dto.request.TokenPayloadDto;
 import kr.aling.auth.service.JwtService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,7 +51,7 @@ class JwtControllerTest {
         String accessToken = "######";
         String refreshToken = "@@@@@@";
 
-        IssueTokenRequestDto requestDto = new IssueTokenRequestDto(1L, List.of("ROLE_ADMIN", "ROLE_USER"));
+        TokenPayloadDto requestDto = new TokenPayloadDto(1L, List.of("ROLE_ADMIN", "ROLE_USER"));
 
         when(jwtService.createAccessToken(any())).thenReturn(accessToken);
         when(jwtService.createRefreshToken(any())).thenReturn(refreshToken);
@@ -84,7 +84,7 @@ class JwtControllerTest {
     @WithMockUser
     void issueToken_invalidInput() throws Exception {
         // given
-        IssueTokenRequestDto requestDto = new IssueTokenRequestDto(0L, null);
+        TokenPayloadDto requestDto = new TokenPayloadDto(0L, null);
 
         // when
         ResultActions result = mockMvc.perform(get("/api/v1/jwt/issue")

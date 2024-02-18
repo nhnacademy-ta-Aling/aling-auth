@@ -11,7 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import kr.aling.auth.dto.request.IssueTokenRequestDto;
+import kr.aling.auth.dto.request.TokenPayloadDto;
 import kr.aling.auth.provider.JwtProvider;
 import kr.aling.auth.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +44,7 @@ class JwtServiceImplTest {
         // given
         String accessToken = "######";
         SetOperations<String, Object> setOps = mock(SetOperations.class);
-        IssueTokenRequestDto requestDto = new IssueTokenRequestDto(1L, List.of("ROLE_ADMIN", "ROLE_USER"));
+        TokenPayloadDto requestDto = new TokenPayloadDto(1L, List.of("ROLE_ADMIN", "ROLE_USER"));
 
         when(jwtProvider.createToken(anyLong(), anyList(), anyLong())).thenReturn(accessToken);
         when(redisTemplate.opsForSet()).thenReturn(setOps);
@@ -67,7 +67,7 @@ class JwtServiceImplTest {
         // given
         String refreshToken = "######";
         SetOperations<String, Object> setOps = mock(SetOperations.class);
-        IssueTokenRequestDto requestDto = new IssueTokenRequestDto(1L, List.of("ROLE_ADMIN", "ROLE_USER"));
+        TokenPayloadDto requestDto = new TokenPayloadDto(1L, List.of("ROLE_ADMIN", "ROLE_USER"));
 
         when(jwtProvider.createToken(anyLong(), anyList(), anyLong())).thenReturn(refreshToken);
         when(redisTemplate.opsForSet()).thenReturn(setOps);

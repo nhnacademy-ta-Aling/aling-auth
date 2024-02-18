@@ -9,7 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * JWT 발급 요청 파라미터를 담는 Dto.
+ * JWT 토큰에 포함하는 내용을 담는 Dto.
  *
  * @author 이수정
  * @since 1.0
@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class IssueTokenRequestDto {
+public class TokenPayloadDto {
 
     @NotNull
     @Positive

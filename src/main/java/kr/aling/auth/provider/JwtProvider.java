@@ -1,7 +1,6 @@
 package kr.aling.auth.provider;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -10,8 +9,7 @@ import io.jsonwebtoken.security.Keys;
 import java.security.Key;
 import java.util.Date;
 import java.util.List;
-import kr.aling.auth.dto.request.TokenPayloadDto;
-import kr.aling.auth.exception.TokenInvalidException;
+import kr.aling.auth.dto.TokenPayloadDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -36,7 +34,7 @@ public class JwtProvider {
      * @author 이수정
      * @since 1.0
      */
-    public JwtProvider(@Value("${aling.security.secretKey}") String secretKey) {
+    public JwtProvider(@Value("${aling.security.secret-key}") String secretKey) {
         byte[] bytes = Decoders.BASE64.decode(secretKey);
         this.secretKey = Keys.hmacShaKeyFor(bytes);
         this.jwtParser = Jwts.parserBuilder().setSigningKey(bytes).build();
@@ -52,8 +50,8 @@ public class JwtProvider {
      * @author 이수정
      * @since 1.0
      */
-    public String createToken(Long userNo, List<String> roles, long expireTime) {
-        Claims claims = Jwts.claims().setSubject(String.valueOf(userNo));
+    public String createToken(String userNo, List<String> roles, long expireTime) {
+        Claims claims = Jwts.claims().setSubject(userNo);
         claims.put("roles", roles);
 
         Date now = new Date();
@@ -67,24 +65,15 @@ public class JwtProvider {
     }
 
     /**
-     * JWT 토큰을 파싱해 회원 식별 정보와 권한 정보를 반환합니다.
+     * JWT 토큰을 파싱해 회원 번호와 역할을 반환합니다.
      *
      * @param token 디코딩할 토큰
-     * @return 회원 식별 정보와 권한 정보를 담은 Dto
+     * @return 회원 번호와 역할
      * @author 이수정
      * @since 1.0
      */
     public TokenPayloadDto parseToken(String token) {
-        try {
-            Claims claims = jwtParser.parseClaimsJws(token).getBody();
-            return new TokenPayloadDto(
-                    Long.parseLong(claims.getSubject()),
-                    (List<String>) claims.get("roles")
-            );
-        } catch (ExpiredJwtException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new TokenInvalidException(e.getMessage());
-        }
+        Claims claims = jwtParser.parseClaimsJws(token).getBody();
+        return new TokenPayloadDto(claims.getSubject(), (List<String>) claims.get("roles"));
     }
 }

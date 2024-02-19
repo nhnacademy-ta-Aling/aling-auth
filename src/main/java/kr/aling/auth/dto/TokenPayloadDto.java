@@ -1,4 +1,4 @@
-package kr.aling.auth.dto.request;
+package kr.aling.auth.dto;
 
 import java.util.List;
 import javax.validation.constraints.NotNull;
@@ -9,20 +9,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * JWT 토큰에 포함하는 내용을 담는 Dto.
+ * JWT 토큰 내 정보를 담는 Dto.
  *
  * @author 이수정
  * @since 1.0
  */
 @Getter
 @AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TokenPayloadDto {
 
-    @NotNull
-    @Positive
-    private Long userNo;
-
-    @NotNull
-    private List<String> roles;
+    private final String userNo;
+    private final List<String> roles;
 }

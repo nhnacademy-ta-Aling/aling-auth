@@ -1,16 +1,22 @@
 package kr.aling.auth.controller;
 
-import io.jsonwebtoken.ExpiredJwtException;
+import java.time.Duration;
 import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
-import kr.aling.auth.dto.request.TokenPayloadDto;
-import kr.aling.auth.service.JwtService;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Positive;
+import kr.aling.auth.dto.TokenPayloadDto;
+import kr.aling.auth.dto.request.IssueTokenRequestDto;
+import kr.aling.auth.exception.RefreshTokenInvalidException;
+import kr.aling.auth.properties.JwtProperties;
+import kr.aling.auth.provider.JwtProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -19,60 +25,79 @@ import org.springframework.web.bind.annotation.RestController;
  * @author 이수정
  * @since 1.0
  */
+@Validated
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/jwt")
 @RestController
 public class JwtController {
 
-    public static final String ACCESS_TOKEN_HEADER_NAME = "ACCESS_TOKEN";
-    public static final String REFRESH_TOKEN_HEADER_NAME = "REFRESH_TOKEN";
-
-    private final JwtService jwtService;
+    private final JwtProvider jwtProvider;
+    private final JwtProperties jwtProperties;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     /**
-     * 로그인 시 AccessToken과 RefreshToken을 생성합니다.
+     * 유저 번호와 권한을 받아 AccessToken, RefreshToken 헤더를 생성해 반환합니다.
      *
-     * @param requestDto 로그인 토큰 생성에 필요한 정보를 담은 Dto.
+     * @param requestDto 토큰 생성에 필요한 정보를 담은 Dto.
      * @return 생성된 JWT 토큰을 헤더로 추가 후 응답
      * @author 이수정
      * @since 1.0
      */
     @GetMapping("/issue")
-    public ResponseEntity<Void> issueToken(@RequestBody @Valid TokenPayloadDto requestDto) {
+    public ResponseEntity<Void> issue(IssueTokenRequestDto requestDto) {
+        String userNo = String.valueOf(requestDto.getUserNo());
+        String accessToken = jwtProvider.createToken(userNo, requestDto.getRoles(), jwtProperties.getAtkExpireTime().toMillis());
+        String refreshToken = jwtProvider.createToken(userNo, requestDto.getRoles(), jwtProperties.getRtkExpireTime().toMillis());
+
+        redisTemplate.opsForValue().set(userNo, refreshToken);
+
         HttpHeaders headers = new HttpHeaders();
-        headers.add(ACCESS_TOKEN_HEADER_NAME, jwtService.createAccessToken(requestDto));
-        headers.add(REFRESH_TOKEN_HEADER_NAME, jwtService.createRefreshToken(requestDto));
+        headers.add(jwtProperties.getAtkHeaderName(), accessToken);
+        headers.add(jwtProperties.getRtkHeaderName(), refreshToken);
 
         return ResponseEntity.ok().headers(headers).build();
     }
 
     /**
-     * AccessToken의 유효성을 검증하고, 존재하면 200 OK를 반환합니다.
-     * 만료라면 RefreshToken으로 재발급 후 200 OK, Refresh 토큰이 없다면 401 UNAUTHORIZED륿 반환합니다.
+     * RefreshToken을 통해 새로운 AccessToken을 발급받습니다.
      *
      * @param request 요청의 헤더를 얻기 위한 HttpServletRequest 객체
-     * @return 유효 여부
+     * @return 새로운 AccessToken을 담은 헤더
      * @author 이수정
      * @since 1.0
      */
-    @GetMapping("/verify")
-    public ResponseEntity<TokenPayloadDto> verifyToken(HttpServletRequest request) {
-        String accessToken = request.getHeader(ACCESS_TOKEN_HEADER_NAME);
-        String refreshToken = request.getHeader(REFRESH_TOKEN_HEADER_NAME);
+    @GetMapping("/reissue")
+    public ResponseEntity<Void> reissue(HttpServletRequest request) {
+        String refreshToken = request.getHeader(jwtProperties.getRtkHeaderName());
 
-        TokenPayloadDto response;
+        TokenPayloadDto payload;
         try {
-            response = jwtService.verifyToken(accessToken);
-        } catch (ExpiredJwtException e) {
-            accessToken = jwtService.reissueToken(refreshToken);
-            response = jwtService.verifyToken(accessToken);
+            payload = jwtProvider.parseToken(refreshToken);
+        } catch (Exception e) {
+            throw new RefreshTokenInvalidException(e.getMessage());
+        }
+
+        if (!refreshToken.equals(redisTemplate.opsForValue().get(payload.getUserNo()))) {
+            throw new RefreshTokenInvalidException("저장소에 존재하지 않거나 일치하지 않습니다.");
         }
 
         HttpHeaders headers = new HttpHeaders();
-        headers.add(ACCESS_TOKEN_HEADER_NAME, accessToken);
-        headers.add(REFRESH_TOKEN_HEADER_NAME, refreshToken);
-
-        return ResponseEntity.ok().headers(headers).body(response);
+        headers.add(jwtProperties.getAtkHeaderName(), jwtProvider.createToken(
+                payload.getUserNo(), payload.getRoles(), jwtProperties.getAtkExpireTime().toMillis()));
+        return ResponseEntity.ok().headers(headers).build();
     }
 
+    /**
+     * 로그아웃 요청 시 레디스 내 RefreshToken을 만료처리합니다.
+     *
+     * @param userNo 만료처리할 RefreshToken의 redis key
+     * @return 200 ok
+     * @author 이수정
+     * @since 1.0
+     */
+    @GetMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestParam @NotNull @Positive Long userNo) {
+        redisTemplate.opsForValue().getAndExpire(String.valueOf(userNo), Duration.ZERO);
+        return ResponseEntity.ok().build();
+    }
 }

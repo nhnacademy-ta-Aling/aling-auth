@@ -1,8 +1,6 @@
 package kr.aling.auth.advice;
 
-import io.jsonwebtoken.ExpiredJwtException;
-import kr.aling.auth.exception.TokenInvalidException;
-import kr.aling.auth.exception.TokenNotFoundException;
+import kr.aling.auth.exception.RefreshTokenInvalidException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,9 +25,23 @@ public class ControllerAdvice {
      * @author 이수정
      * @since 1.0
      */
-    @ExceptionHandler({TokenInvalidException.class, ExpiredJwtException.class, TokenNotFoundException.class})
+    @ExceptionHandler(RefreshTokenInvalidException.class)
     public ResponseEntity<String> handleBadRequestException(Exception e) {
         log.error("[{}] {}", HttpStatus.UNAUTHORIZED, e.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+    }
+
+    /**
+     * Http Status 500에 해당하는 예외를 공통 처리합니다. 분류되지 않은 예외는 모두 500 처리됩니다.
+     *
+     * @param e 500에 해당하는 예외
+     * @return 500 status response
+     * @author 이수정
+     * @since 1.0
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleInternalServerError(Exception e) {
+        log.error("[{}] {}", HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        return ResponseEntity.internalServerError().body(e.getMessage());
     }
 }

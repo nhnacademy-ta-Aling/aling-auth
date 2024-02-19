@@ -53,7 +53,7 @@ public class JwtServiceImpl implements JwtService {
         String refreshToken = request.getHeader(jwtProperties.getRtkHeaderName());
 
         TokenPayloadDto payload = jwtProvider.parseToken(refreshToken);
-        if (refreshToken.equals(redisTemplate.opsForValue().get(payload.getUserNo()))) {
+        if (!refreshToken.equals(redisTemplate.opsForValue().get(payload.getUserNo()))) {
             throw new RefreshTokenInvalidException("저장소에 존재하지 않거나 일치하지 않습니다.");
         }
         return payload;

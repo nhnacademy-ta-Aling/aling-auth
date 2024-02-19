@@ -1,12 +1,8 @@
 package kr.aling.auth.dto;
 
 import java.util.List;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Positive;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 /**
  * JWT 토큰 내 정보를 담는 Dto.

@@ -1,17 +1,13 @@
 package kr.aling.auth.controller;
 
-import java.time.Duration;
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import kr.aling.auth.dto.TokenPayloadDto;
 import kr.aling.auth.dto.request.IssueTokenRequestDto;
-import kr.aling.auth.exception.RefreshTokenInvalidException;
-import kr.aling.auth.properties.JwtProperties;
-import kr.aling.auth.provider.JwtProvider;
+import kr.aling.auth.service.JwtService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,9 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class JwtController {
 
-    private final JwtProvider jwtProvider;
-    private final JwtProperties jwtProperties;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final JwtService jwtService;
 
     /**
      * 유저 번호와 권한을 받아 AccessToken, RefreshToken 헤더를 생성해 반환합니다.
@@ -44,18 +38,8 @@ public class JwtController {
      * @since 1.0
      */
     @GetMapping("/issue")
-    public ResponseEntity<Void> issue(IssueTokenRequestDto requestDto) {
-        String userNo = String.valueOf(requestDto.getUserNo());
-        String accessToken = jwtProvider.createToken(userNo, requestDto.getRoles(), jwtProperties.getAtkExpireTime().toMillis());
-        String refreshToken = jwtProvider.createToken(userNo, requestDto.getRoles(), jwtProperties.getRtkExpireTime().toMillis());
-
-        redisTemplate.opsForValue().set(userNo, refreshToken);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(jwtProperties.getAtkHeaderName(), accessToken);
-        headers.add(jwtProperties.getRtkHeaderName(), refreshToken);
-
-        return ResponseEntity.ok().headers(headers).build();
+    public ResponseEntity<Void> issue(@Valid IssueTokenRequestDto requestDto) {
+        return ResponseEntity.ok().headers(jwtService.issue(requestDto)).build();
     }
 
     /**
@@ -68,23 +52,8 @@ public class JwtController {
      */
     @GetMapping("/reissue")
     public ResponseEntity<Void> reissue(HttpServletRequest request) {
-        String refreshToken = request.getHeader(jwtProperties.getRtkHeaderName());
-
-        TokenPayloadDto payload;
-        try {
-            payload = jwtProvider.parseToken(refreshToken);
-        } catch (Exception e) {
-            throw new RefreshTokenInvalidException(e.getMessage());
-        }
-
-        if (!refreshToken.equals(redisTemplate.opsForValue().get(payload.getUserNo()))) {
-            throw new RefreshTokenInvalidException("저장소에 존재하지 않거나 일치하지 않습니다.");
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(jwtProperties.getAtkHeaderName(), jwtProvider.createToken(
-                payload.getUserNo(), payload.getRoles(), jwtProperties.getAtkExpireTime().toMillis()));
-        return ResponseEntity.ok().headers(headers).build();
+        TokenPayloadDto payload = jwtService.getReissuePayload(request);
+        return ResponseEntity.ok().headers(jwtService.reissue(payload)).build();
     }
 
     /**
@@ -97,7 +66,7 @@ public class JwtController {
      */
     @GetMapping("/logout")
     public ResponseEntity<Void> logout(@RequestParam @NotNull @Positive Long userNo) {
-        redisTemplate.opsForValue().getAndExpire(String.valueOf(userNo), Duration.ZERO);
+        jwtService.logout(userNo);
         return ResponseEntity.ok().build();
     }
 }

@@ -1,6 +1,7 @@
 package kr.aling.auth.dto.request;
 
 import java.util.List;
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import lombok.AccessLevel;
@@ -23,6 +24,6 @@ public class IssueTokenRequestDto {
     @Positive
     private Long userNo;
 
-    @NotNull
+    @NotEmpty
     private List<String> roles;
 }

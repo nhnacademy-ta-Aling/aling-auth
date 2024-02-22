@@ -5,10 +5,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import java.security.Key;
 import java.util.Date;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -20,30 +18,18 @@ import org.springframework.stereotype.Component;
 @Component
 public class JwtProvider {
 
-    private final Key secretKey;
-
-    /**
-     * JwtProvider 생성자. secret key 값을 base64 decode해 Key를 생성합니다.
-     *
-     * @param secretKey 디코딩할 secretKey 문자열
-     * @author 이수정
-     * @since 1.0
-     */
-    public JwtProvider(@Value("${aling.security.secret}") String secretKey) {
-        byte[] bytes = Decoders.BASE64.decode(secretKey);
-        this.secretKey = Keys.hmacShaKeyFor(bytes);
-    }
-
     /**
      * JWT 토큰을 생성합니다. claims -> sub = 회원 식별, roles = 회원 권한
      *
-     * @param userNo 토큰을 발급받는 회원의 번호
-     * @param roles  토큰을 발급받는 회원의 권한
+     * @param secretKey  토큰에 따른 secret key
+     * @param userNo     토큰을 발급받는 회원의 번호
+     * @param roles      토큰을 발급받는 회원의 권한
+     * @param expireTime 토큰 만료 시간
      * @return 생성된 토큰
      * @author 이수정
      * @since 1.0
      */
-    public String createToken(String userNo, List<String> roles, long expireTime) {
+    public String createToken(String secretKey, String userNo, List<String> roles, long expireTime) {
         Claims claims = Jwts.claims().setSubject(userNo);
         claims.put("roles", roles);
 
@@ -53,7 +39,7 @@ public class JwtProvider {
 
         return Jwts.builder()
                 .setClaims(claims)
-                .signWith(secretKey, SignatureAlgorithm.HS512)
+                .signWith(Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey)), SignatureAlgorithm.HS512)
                 .compact();
     }
 }

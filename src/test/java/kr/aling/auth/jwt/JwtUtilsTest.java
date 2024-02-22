@@ -12,8 +12,7 @@ class JwtUtilsTest {
 
     @BeforeEach
     void setUp() {
-        jwtUtils = new JwtUtils(
-                "secretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretkk");
+        jwtUtils = new JwtUtils();
     }
 
 
@@ -21,9 +20,10 @@ class JwtUtilsTest {
     @DisplayName("JWT 토큰 파싱 실패 - 빈 문자열 토큰인 경우")
     void parseToken_blankToken() {
         // given
+        String secretKey = "secretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretkk";
         String token = "";
 
         // when
-        assertThatThrownBy(() -> jwtUtils.parseToken(token)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> jwtUtils.parseToken(secretKey, token)).isInstanceOf(IllegalArgumentException.class);
     }
 }

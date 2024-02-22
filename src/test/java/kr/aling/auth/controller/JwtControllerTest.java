@@ -67,8 +67,8 @@ class JwtControllerTest {
 
         // when
         ResultActions result = mockMvc.perform(get("/api/v1/jwt/issue")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)));
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestDto)));
 
         // then
         result.andDo(print())

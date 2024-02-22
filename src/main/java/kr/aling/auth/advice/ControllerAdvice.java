@@ -27,7 +27,8 @@ public class ControllerAdvice {
      * @author 이수정
      * @since 1.0
      */
-    @ExceptionHandler({MethodArgumentNotValidException.class, ConstraintViolationException.class, IllegalArgumentException.class})
+    @ExceptionHandler({MethodArgumentNotValidException.class, ConstraintViolationException.class,
+            IllegalArgumentException.class})
     public ResponseEntity<String> handleBadRequestException(Exception e) {
         log.error("[{}] {}", HttpStatus.BAD_REQUEST, e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());

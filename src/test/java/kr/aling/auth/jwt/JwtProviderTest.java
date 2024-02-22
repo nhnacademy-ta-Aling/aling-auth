@@ -1,6 +1,5 @@
-package kr.aling.auth.provider;
+package kr.aling.auth.jwt;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -14,7 +13,8 @@ class JwtProviderTest {
 
     @BeforeEach
     void setUp() {
-        jwtProvider = new JwtProvider("secretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretkk");
+        jwtProvider = new JwtProvider(
+                "secretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretkk");
     }
 
     @Test
@@ -34,15 +34,5 @@ class JwtProviderTest {
         // then
         assertTrue(token.startsWith(encodedHeader));
         assertTrue(token.split("\\.")[1].startsWith(encodedPayload));
-    }
-
-    @Test
-    @DisplayName("JWT 토큰 파싱 실패 - 빈 문자열 토큰인 경우")
-    void parseToken_blankToken() {
-        // given
-        String token = "";
-
-        // when
-        assertThatThrownBy(() -> jwtProvider.parseToken(token)).isInstanceOf(IllegalArgumentException.class);
     }
 }

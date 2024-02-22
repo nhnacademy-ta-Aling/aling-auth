@@ -13,14 +13,16 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.jsonwebtoken.Claims;
 import java.time.Duration;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import kr.aling.auth.dto.TokenPayloadDto;
 import kr.aling.auth.dto.request.IssueTokenRequestDto;
 import kr.aling.auth.exception.RefreshTokenInvalidException;
-import kr.aling.auth.properties.JwtProperties;
-import kr.aling.auth.provider.JwtProvider;
+import kr.aling.auth.jwt.JwtProvider;
+import kr.aling.auth.jwt.JwtUtils;
+import kr.aling.auth.properties.SecurityProperties;
 import kr.aling.auth.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,18 +36,21 @@ class JwtServiceImplTest {
     private JwtService jwtService;
 
     private JwtProvider jwtProvider;
-    private JwtProperties jwtProperties;
+    private JwtUtils jwtUtils;
+    private SecurityProperties securityProperties;
     private RedisTemplate<String, Object> redisTemplate;
 
     @BeforeEach
     void setUp() {
         jwtProvider = mock(JwtProvider.class);
+        jwtUtils = mock(JwtUtils.class);
         redisTemplate = mock(RedisTemplate.class);
-        jwtProperties = mock(JwtProperties.class);
+        securityProperties = mock(SecurityProperties.class);
 
         jwtService = new JwtServiceImpl(
                 jwtProvider,
-                jwtProperties,
+                jwtUtils,
+                securityProperties,
                 redisTemplate
         );
     }
@@ -58,20 +63,22 @@ class JwtServiceImplTest {
         String refreshToken = "@@@@@@";
         IssueTokenRequestDto requestDto = new IssueTokenRequestDto(1L, List.of("ROLE_ADMIN", "ROLE_USER"));
 
-        when(jwtProperties.getAtkExpireTime()).thenReturn(Duration.ofMillis(1000));
-        when(jwtProperties.getRtkExpireTime()).thenReturn(Duration.ofMillis(10000));
-        when(jwtProperties.getAtkHeaderName()).thenReturn("ACCESS_TOKEN");
-        when(jwtProperties.getRtkHeaderName()).thenReturn("REFRESH_TOKEN");
+        when(securityProperties.getAtkExpireTime()).thenReturn(Duration.ofMillis(1000));
+        when(securityProperties.getRtkExpireTime()).thenReturn(Duration.ofMillis(10000));
+        when(securityProperties.getAtkHeaderName()).thenReturn("ACCESS_TOKEN");
+        when(securityProperties.getRtkHeaderName()).thenReturn("REFRESH_TOKEN");
 
-        when(jwtProvider.createToken(anyString(), anyList(), eq(Duration.ofMillis(1000).toMillis()))).thenReturn(accessToken);
-        when(jwtProvider.createToken(anyString(), anyList(), eq(Duration.ofMillis(10000).toMillis()))).thenReturn(refreshToken);
+        when(jwtProvider.createToken(anyString(), anyList(), eq(Duration.ofMillis(1000).toMillis()))).thenReturn(
+                accessToken);
+        when(jwtProvider.createToken(anyString(), anyList(), eq(Duration.ofMillis(10000).toMillis()))).thenReturn(
+                refreshToken);
 
         ValueOperations<String, Object> valueOps = mock(ValueOperations.class);
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
         doNothing().when(valueOps).set(anyString(), anyList());
 
         // when
-        HttpHeaders result =  jwtService.issue(requestDto);
+        HttpHeaders result = jwtService.issue(requestDto);
 
         // then
         assertThat(result).isNotNull();
@@ -89,27 +96,31 @@ class JwtServiceImplTest {
         String refreshToken = "@@@@@@";
         HttpServletRequest request = mock(HttpServletRequest.class);
 
-        when(jwtProperties.getRtkHeaderName()).thenReturn("REFRESH_TOKEN");
+        when(securityProperties.getRtkHeaderName()).thenReturn("REFRESH_TOKEN");
         when(request.getHeader(anyString())).thenReturn(refreshToken);
 
         TokenPayloadDto tokenPayloadDto = new TokenPayloadDto("1", List.of("ROLE_ADMIN", "ROLE_USER"));
 
-        when(jwtProvider.parseToken(refreshToken)).thenReturn(tokenPayloadDto);
+        Claims claims = mock(Claims.class);
+        when(claims.getSubject()).thenReturn("1");
+        when(claims.get("roles")).thenReturn(List.of("ROLE_ADMIN", "ROLE_USER"));
+
+        when(jwtUtils.parseToken(refreshToken)).thenReturn(claims);
 
         ValueOperations<String, Object> valueOps = mock(ValueOperations.class);
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
         when(valueOps.get(anyString())).thenReturn(refreshToken);
 
         // when
-        TokenPayloadDto result =  jwtService.getReissuePayload(request);
+        TokenPayloadDto result = jwtService.getReissuePayload(request);
 
         // then
         assertThat(result).isNotNull();
         assertThat(result.getUserNo()).isEqualTo(tokenPayloadDto.getUserNo());
         assertThat(result.getRoles()).isEqualTo(tokenPayloadDto.getRoles());
 
-        verify(jwtProperties, times(1)).getRtkHeaderName();
-        verify(jwtProvider, times(1)).parseToken(anyString());
+        verify(securityProperties, times(1)).getRtkHeaderName();
+        verify(jwtUtils, times(1)).parseToken(anyString());
         verify(redisTemplate, times(1)).opsForValue();
         verify(valueOps, times(1)).get(anyString());
     }
@@ -121,12 +132,14 @@ class JwtServiceImplTest {
         String refreshToken = "@@@@@@";
         HttpServletRequest request = mock(HttpServletRequest.class);
 
-        when(jwtProperties.getRtkHeaderName()).thenReturn("REFRESH_TOKEN");
+        when(securityProperties.getRtkHeaderName()).thenReturn("REFRESH_TOKEN");
         when(request.getHeader(anyString())).thenReturn(refreshToken);
 
-        TokenPayloadDto tokenPayloadDto = new TokenPayloadDto("1", List.of("ROLE_ADMIN", "ROLE_USER"));
+        Claims claims = mock(Claims.class);
+        when(claims.getSubject()).thenReturn("1");
+        when(claims.get("roles")).thenReturn(List.of("ROLE_ADMIN", "ROLE_USER"));
 
-        when(jwtProvider.parseToken(refreshToken)).thenReturn(tokenPayloadDto);
+        when(jwtUtils.parseToken(refreshToken)).thenReturn(claims);
 
         ValueOperations<String, Object> valueOps = mock(ValueOperations.class);
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
@@ -137,8 +150,8 @@ class JwtServiceImplTest {
                 .isInstanceOf(RefreshTokenInvalidException.class);
 
         // then
-        verify(jwtProperties, times(1)).getRtkHeaderName();
-        verify(jwtProvider, times(1)).parseToken(anyString());
+        verify(securityProperties, times(1)).getRtkHeaderName();
+        verify(jwtUtils, times(1)).parseToken(anyString());
         verify(redisTemplate, times(1)).opsForValue();
         verify(valueOps, times(1)).get(anyString());
     }
@@ -150,15 +163,15 @@ class JwtServiceImplTest {
         String accessToken = "######";
         TokenPayloadDto tokenPayloadDto = new TokenPayloadDto("1", List.of("ROLE_ADMIN", "ROLE_USER"));
 
-        when(jwtProperties.getAtkExpireTime()).thenReturn(Duration.ofMillis(1000));
-        when(jwtProperties.getRtkExpireTime()).thenReturn(Duration.ofMillis(10000));
-        when(jwtProperties.getAtkHeaderName()).thenReturn("ACCESS_TOKEN");
-        when(jwtProperties.getRtkHeaderName()).thenReturn("REFRESH_TOKEN");
+        when(securityProperties.getAtkExpireTime()).thenReturn(Duration.ofMillis(1000));
+        when(securityProperties.getRtkExpireTime()).thenReturn(Duration.ofMillis(10000));
+        when(securityProperties.getAtkHeaderName()).thenReturn("ACCESS_TOKEN");
+        when(securityProperties.getRtkHeaderName()).thenReturn("REFRESH_TOKEN");
 
         when(jwtProvider.createToken(anyString(), anyList(), anyLong())).thenReturn(accessToken);
 
         // when
-        HttpHeaders result =  jwtService.reissue(tokenPayloadDto);
+        HttpHeaders result = jwtService.reissue(tokenPayloadDto);
 
         // then
         assertThat(result).isNotNull();

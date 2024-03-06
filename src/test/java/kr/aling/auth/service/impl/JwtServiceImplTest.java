@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 class JwtServiceImplTest {
 
@@ -44,6 +45,8 @@ class JwtServiceImplTest {
 
     private RedisTemplate<String, Object> redisTemplate;
 
+    private PasswordEncoder passwordEncoder;
+
     @BeforeEach
     void setUp() {
         accessProperties = mock(AccessProperties.class);
@@ -51,6 +54,7 @@ class JwtServiceImplTest {
         jwtProvider = mock(JwtProvider.class);
         jwtUtils = mock(JwtUtils.class);
         redisTemplate = mock(RedisTemplate.class);
+        passwordEncoder = mock(PasswordEncoder.class);
 
         when(accessProperties.getSecret()).thenReturn(
                 "secretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretsecretkk");
@@ -65,7 +69,8 @@ class JwtServiceImplTest {
                 refreshProperties,
                 jwtProvider,
                 jwtUtils,
-                redisTemplate
+                redisTemplate,
+                passwordEncoder
         );
     }
 
@@ -119,6 +124,8 @@ class JwtServiceImplTest {
         when(redisTemplate.opsForValue()).thenReturn(valueOps);
         when(valueOps.get(anyString())).thenReturn(refreshToken);
 
+        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
+
         // when
         TokenPayloadDto result = jwtService.getReissuePayload(request);
 
@@ -131,6 +138,42 @@ class JwtServiceImplTest {
         verify(jwtUtils, times(1)).parseToken(anyString(), anyString());
         verify(redisTemplate, times(1)).opsForValue();
         verify(valueOps, times(1)).get(anyString());
+        verify(passwordEncoder, times(1)).matches(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("Reissue용 페이로드 반환 실패 - 저장소 내의 토큰과 일치하지 않는 경우")
+    void getReissuePayload_notMatchRequestToken() {
+        // given
+        String refreshToken = "@@@@@@";
+        HttpServletRequest request = mock(HttpServletRequest.class);
+
+        when(request.getHeader(anyString())).thenReturn(refreshToken);
+
+        TokenPayloadDto tokenPayloadDto = new TokenPayloadDto("1", List.of("ROLE_ADMIN", "ROLE_USER"));
+
+        Claims claims = mock(Claims.class);
+        when(claims.getSubject()).thenReturn("1");
+        when(claims.get("roles")).thenReturn(List.of("ROLE_ADMIN", "ROLE_USER"));
+
+        when(jwtUtils.parseToken(anyString(), eq(refreshToken))).thenReturn(claims);
+
+        ValueOperations<String, Object> valueOps = mock(ValueOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOps);
+        when(valueOps.get(anyString())).thenReturn(refreshToken);
+
+        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+
+        // when
+        assertThatThrownBy(() -> jwtService.getReissuePayload(request))
+                .isInstanceOf(RefreshTokenInvalidException.class);
+
+        // then
+        verify(refreshProperties, times(1)).getHeaderName();
+        verify(jwtUtils, times(1)).parseToken(anyString(), anyString());
+        verify(redisTemplate, times(1)).opsForValue();
+        verify(valueOps, times(1)).get(anyString());
+        verify(passwordEncoder, times(1)).matches(anyString(), anyString());
     }
 
     @Test

@@ -15,6 +15,7 @@ import kr.aling.auth.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -37,6 +38,8 @@ public class JwtServiceImpl implements JwtService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
+    private final PasswordEncoder passwordEncoder;
+
     /**
      * {@inheritDoc}
      */
@@ -48,7 +51,7 @@ public class JwtServiceImpl implements JwtService {
         String refreshToken = jwtProvider.createToken(refreshProperties.getSecret(), userNo, requestDto.getRoles(),
                 refreshProperties.getExpireTime().toMillis());
 
-        redisTemplate.opsForValue().set(userNo, refreshToken);
+        redisTemplate.opsForValue().set(userNo, passwordEncoder.encode(refreshToken));
 
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.AUTHORIZATION, BEARER + accessToken);
@@ -65,7 +68,7 @@ public class JwtServiceImpl implements JwtService {
 
         Claims claims = jwtUtils.parseToken(refreshProperties.getSecret(), refreshToken);
         TokenPayloadDto payload = new TokenPayloadDto(claims.getSubject(), (List<String>) claims.get("roles"));
-        if (!refreshToken.equals(redisTemplate.opsForValue().get(payload.getUserNo()))) {
+        if (!passwordEncoder.matches(refreshToken, (String) redisTemplate.opsForValue().get(payload.getUserNo()))) {
             throw new RefreshTokenInvalidException("해당 Refresh Token이 저장소에 존재하지 않거나 일치하지 않습니다.");
         }
         return payload;

@@ -3,7 +3,6 @@ package kr.aling.auth.service.impl;
 import io.jsonwebtoken.Claims;
 import java.time.Duration;
 import java.util.List;
-import javax.servlet.http.HttpServletRequest;
 import kr.aling.auth.dto.TokenPayloadDto;
 import kr.aling.auth.dto.request.IssueTokenRequestDto;
 import kr.aling.auth.exception.RefreshTokenInvalidException;
@@ -63,9 +62,7 @@ public class JwtServiceImpl implements JwtService {
      * {@inheritDoc}
      */
     @Override
-    public TokenPayloadDto getReissuePayload(HttpServletRequest request) {
-        String refreshToken = request.getHeader(refreshProperties.getHeaderName());
-
+    public TokenPayloadDto getReissuePayload(String refreshToken) {
         Claims claims = jwtUtils.parseToken(refreshProperties.getSecret(), refreshToken);
         TokenPayloadDto payload = new TokenPayloadDto(claims.getSubject(), (List<String>) claims.get("roles"));
         if (!passwordEncoder.matches(refreshToken, (String) redisTemplate.opsForValue().get(payload.getUserNo()))) {

@@ -1,6 +1,5 @@
 package kr.aling.auth.controller;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
@@ -13,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -47,14 +47,14 @@ public class JwtController {
     /**
      * RefreshToken을 통해 새로운 AccessToken을 발급받습니다.
      *
-     * @param request 요청의 헤더를 얻기 위한 HttpServletRequest 객체
+     * @param refreshToken 헤더에 담긴 RefreshToken 값
      * @return 새로운 AccessToken을 담은 헤더
      * @author 이수정
      * @since 1.0
      */
     @GetMapping("/reissue")
-    public ResponseEntity<Void> reissue(HttpServletRequest request) {
-        TokenPayloadDto payload = jwtService.getReissuePayload(request);
+    public ResponseEntity<Void> reissue(@RequestHeader("X-Refresh-Token") String refreshToken) {
+        TokenPayloadDto payload = jwtService.getReissuePayload(refreshToken);
         return ResponseEntity.ok().headers(jwtService.reissue(payload)).build();
     }
 

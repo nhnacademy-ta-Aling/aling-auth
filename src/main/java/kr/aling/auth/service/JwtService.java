@@ -1,6 +1,5 @@
 package kr.aling.auth.service;
 
-import javax.servlet.http.HttpServletRequest;
 import kr.aling.auth.dto.TokenPayloadDto;
 import kr.aling.auth.dto.request.IssueTokenRequestDto;
 import org.springframework.http.HttpHeaders;
@@ -26,12 +25,12 @@ public interface JwtService {
     /**
      * RefreshToken을 파싱하여 유효성을 검사하고 AccessToken을 생성하기 위한 정보를 반환합니다.
      *
-     * @param request 요청의 헤더를 얻기 위한 HttpServletRequest 객체
+     * @param refreshToken 재발급에 사용할 refreshToken
      * @return AccessToken을 생성하기 위한 정보
      * @author 이수정
      * @since 1.0
      */
-    TokenPayloadDto getReissuePayload(HttpServletRequest request);
+    TokenPayloadDto getReissuePayload(String refreshToken);
 
     /**
      * AccessToken을 재발급합니다.

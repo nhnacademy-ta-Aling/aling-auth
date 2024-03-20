@@ -1,7 +1,6 @@
 package kr.aling.auth.service.impl;
 
 import io.jsonwebtoken.Claims;
-import java.time.Duration;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import kr.aling.auth.dto.TokenPayloadDto;
@@ -91,6 +90,6 @@ public class JwtServiceImpl implements JwtService {
      */
     @Override
     public void logout(Long userNo) {
-        redisTemplate.opsForValue().getAndExpire(String.valueOf(userNo), Duration.ZERO);
+        redisTemplate.opsForValue().getAndDelete(String.valueOf(userNo));
     }
 }
